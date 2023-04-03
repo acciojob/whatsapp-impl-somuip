@@ -1,124 +1,180 @@
 package com.driver;
 
-import java.util.*;
-
 import org.springframework.stereotype.Repository;
-import org.springframework.web.multipart.support.StandardMultipartHttpServletRequest;
+
+import java.util.*;
 
 @Repository
 public class WhatsappRepository {
 
-    //Assume that each user belongs to at most one group
-    //You can use the below mentioned hashmaps or delete these and create your own.
-
-    // db for userMap to store(mobile, user)
-    private HashMap<String, User> userMap = new HashMap<>();
+    // hashmap to store ( mobileNo , User)
+    private HashMap<String , User> userHashMap =  new HashMap<>() ;
 
     // hashmap to store ( Admin(User) , List<Users> in the group)
     private HashMap<User, List<User>> adminHashMap = new HashMap<>();
 
-    // db for groups
-    private HashMap<Group, List<User>> groupUserMap;
-    private HashMap<Group, List<Message>> groupMessageMap;
-    private HashMap<Message, User> senderMap;
+    // hashmap to store ( group , List<Users> in the group)
+    private  HashMap<Group, List<User>> groupHashMap =new HashMap<>();
 
-    // db for adminmap
-    private HashMap<Group, User> adminMap;
-    private HashSet<String> userMobile;
-    private int customGroupCount;
-    private int messageId;
+    private  HashMap<Group, List<Message>> messageHashMap =new HashMap<>();
 
-    public WhatsappRepository(){
-        this.groupMessageMap = new HashMap<Group, List<Message>>();
-        this.groupUserMap = new HashMap<Group, List<User>>();
-        this.senderMap = new HashMap<Message, User>();
-        this.adminMap = new HashMap<Group, User>();
-        this.userMobile = new HashSet<>();
-        this.customGroupCount = 0;
-        this.messageId = 0;
-    }
+    private HashMap<Group,User> groupToAdmin = new HashMap<>() ;
+
+
+    private int noOfGroup= 1;
+
+    private int noOfMessage =1 ;
+
+
 
     public String createUser(String name, String mobile) throws Exception{
-        if(!userMap.containsKey(mobile)){
-            User user = new User(name, mobile);
-            userMap.put(mobile, user);
-            return "Success";
+
+        if(!userHashMap.containsKey(mobile)){
+
+            User user =  new User();
+            user.setName(name);
+            user.setMobile(mobile) ;
+            userHashMap.put(mobile,user);
+
+            return "SUCCESS";
+
         }
         else{
-            throw new Exception("User already exist");
+            throw new Exception("User already exists");
         }
+
+
     }
 
+
+
+
     public Group createGroup(List<User> users){
-        Group group = new Group();
+
+
+        Group group = new Group() ;
 
         if(users.size() == 2){
-            group.setName(users.get(1).getName());
+
+            group.setName(users.get(1).getName()) ;
             group.setNumberOfParticipants(2);
 
         }
+
         else{
-            customGroupCount += 1;
-            group.setName("Group"+customGroupCount);
+
+            String groupName = "Group " + noOfGroup ;
+            group.setName(groupName);
             group.setNumberOfParticipants(users.size());
+            noOfGroup++;
+
+
         }
 
-        adminMap.put(group, users.get(0));
-        adminHashMap.put(users.get(0), users);
-        return group;
+
+        groupHashMap.put(group,users) ;
+        groupToAdmin.put(group,users.get(0));
+
+        return group ;
+
     }
 
     public int createMessage(String content){
+
+        int id = noOfMessage ;
+
         Message message = new Message();
-        messageId += 1;
-        return messageId;
+        noOfMessage = noOfMessage + 1;
+
+
+        return id ;
     }
 
-    public int sendMessages(Message message, User sender, Group group) throws Exception{
-       if(groupUserMap.containsKey(group)){
-           List<User> users = groupUserMap.get(group);
+    public int sendMessage(Message message, User sender, Group group) throws Exception{
 
-           if(senderMap.containsValue(sender)){
-               List<Message> messages;
+        if(groupHashMap.containsKey(group)){
 
-               if(groupMessageMap.containsKey(group)){
-                   messages = groupMessageMap.get(group);
-               }
-               else{
-                   messages = new ArrayList<>();
-               }
+            List<User>  users =  groupHashMap.get(group) ;
 
-               messages.add(message);
-               groupMessageMap.put(group, messages);
-               return groupMessageMap.size();
-           }
-           else {
-               throw new Exception("You are not allowed to send message");
-           }
-       }
-       else{
-           throw new Exception("Group does not exist");
-       }
+            if(users.contains(sender)){
+
+                List<Message> messages ;
+
+                if(messageHashMap.containsKey(group)){
+                    messages = messageHashMap.get(group);
+                }
+                else{
+                    messages = new ArrayList<>();
+                }
+
+                messages.add(message);
+
+                messageHashMap.put(group,messages) ;
+
+                return messages.size() ;
+            }
+
+            else{
+
+                throw new Exception("You are not allowed to send message");
+            }
+
+
+        }
+
+        else{
+
+            throw new Exception("Group does not exist");
+        }
+
+
+
     }
 
     public String changeAdmin(User approver, User user, Group group) throws Exception{
-        if(groupUserMap.containsKey(group)){
-            List<User> users = groupUserMap.get(group);
-            if(users.get(0).equals(user)){
-                if(users.contains(user)){
-                    users.set(0, user);
-                    return "SUCCESS";
-                }
-                else{
-                    throw new Exception("User is not a participant");
-                }
+
+        if(groupHashMap.containsKey(group)){
+
+            User currAdmin = groupToAdmin.get(group) ;
+
+            if(currAdmin.equals(approver)) {
+
+                List<User> users = groupHashMap.get(group);
+
+                if (users.contains(user)) groupToAdmin.put(group, user);
+
+                else  { throw new Exception("User is not a participant"); }
+
             }
+
             else{
+
                 throw new Exception("Approver does not have rights");
+
             }
-        }
+
+        } // if
+
+
         else{
+
             throw new Exception("Group does not exist");
         }
+
+        return "SUCCESS";
+    }
+
+    public int removeUser(User user) throws Exception{
+
+
+        return 0 ;
+
+
+    }
+
+    public String findMessage(Date start, Date end, int K) throws Exception{
+
+        return "";
+
     }
 }
